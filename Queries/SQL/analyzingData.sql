@@ -52,23 +52,31 @@ SELECT Genre, Album, Revenue
 FROM RankedAlbum
 WHERE AlbumRank = 1;
 
-WITH RankedAlbum AS (
-	SELECT 
-		a.Genre, a.Year, SUM(s.Revenue) AS Revenue,
-		RANK() OVER (PARTITION BY a.Year ORDER BY SUM(s.Revenue) DESC) as AlbumRank
-	FROM
-		Album a,
-		Stats s
-	WHERE
-		a.StatID = s.StatsID
-	GROUP BY a.Genre, a.Year
-    ORDER BY AlbumRank, Year
-)
-SELECT *
-FROM RankedAlbum
-WHERE AlbumRank IN (1,2,3);
+-- Query 6 : Find the total investment made in concerts for each genre of music.
+SELECT sg.Specialty, SUM(s.Investment) AS TotalInvestment
+FROM Concert c
+JOIN OrganizeConcert oc ON c.ConcertID = oc.ConcertID
+JOIN Singer sg ON oc.ArtistID = sg.ArtistID
+JOIN Stats s ON c.StatsID = s.StatsID
+GROUP BY sg.Specialty
+ORDER BY TotalInvestment DESC;
 
--- Query 6 : Retrieve name, age and AwardYear of artists who have won awards for their albums or movies.
+-- Query 7 : Find the average age of artists represented by each agency.
+SELECT a.AgencyID, a.Name AS AgencyName, AVG(t.Age) AS AverageAge
+FROM Talent t
+JOIN Agency a ON t.AgencyID = a.AgencyID
+GROUP BY a.AgencyID, AgencyName
+ORDER BY AverageAge;
+
+
+
+# Extra Queries
+-- Query 8 : Retrieve the names of artists who have not endorsed any company.
+SELECT FirstName, LastName
+FROM Talent
+WHERE ArtistID NOT IN (SELECT ArtistID FROM Endorse);
+
+-- Query 9 : Retrieve name, age and AwardYear of artists who have won awards for their albums or movies.
 SELECT
     t.FirstName, t.LastName, t.Age, r.Year AS AwardYear,
     CASE WHEN prod.Identifier LIKE 'A%' THEN 'Album'
@@ -85,27 +93,6 @@ FROM
 	) prod ON t.ArtistID = prod.ArtistID
         INNER JOIN
     Recipient r ON prod.Identifier = r.Identifier;
-
--- Query 7 : Find the total investment made in concerts for each genre of music.
-SELECT sg.Specialty, SUM(s.Investment) AS TotalInvestment
-FROM Concert c
-JOIN OrganizeConcert oc ON c.ConcertID = oc.ConcertID
-JOIN Singer sg ON oc.ArtistID = sg.ArtistID
-JOIN Stats s ON c.StatsID = s.StatsID
-GROUP BY sg.Specialty
-ORDER BY TotalInvestment DESC;
-
--- Query 8 : Find the average age of artists represented by each agency.
-SELECT a.AgencyID, a.Name AS AgencyName, AVG(t.Age) AS AverageAge
-FROM Talent t
-JOIN Agency a ON t.AgencyID = a.AgencyID
-GROUP BY a.AgencyID, AgencyName
-ORDER BY AverageAge;
-
--- Query 9 : Retrieve the names of artists who have not endorsed any company.
-SELECT FirstName, LastName
-FROM Talent
-WHERE ArtistID NOT IN (SELECT ArtistID FROM Endorse);
 
 -- Query 10 : Find the movies with the highest ratings in each genre.
 SELECT 
@@ -153,10 +140,6 @@ WITH artistIncome (ArtistID, Income) AS (
 	FROM talent t
 	LEFT JOIN endorse e ON e.artistid=t.artistid
 )
-SELECT ai.ArtistID,
-	CONCAT(t.FirstName, ' ', t.LastName) AS ArtistName,
-    SUM(Income) AS netIncome
-FROM artistIncome ai, Talent t
-WHERE ai.ArtistID = t.ArtistID
+SELECT ArtistID, SUM(Income) AS netIncome FROM artistIncome
 GROUP BY ArtistID
 ORDER BY netIncome DESC;
