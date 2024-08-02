@@ -1,0 +1,95 @@
+-- NoSQL Query 1
+
+Purpose : Examining the age distribution of talents aged 16 or younger can help identify trends and patterns in the emergence of talent across different age brackets. This insight can inform talent development strategies, educational programs, or scouting efforts targeting specific age groups.
+
+db.Talent.find(	{ Age: { $lte: 16 } },
+		{ FirstName: 1, LastName: 1, _id: 0 , Age: 1, Gender: 1}
+	      )
+
+
+
+
+-- NoSQL Query 2
+
+Purpose : Analyzing revenue data by agency provides insights into the effectiveness of agency partnerships in generating concert revenue. Organizations can use this information to optimize their partnerships by prioritizing collaborations with high-performing agencies or adjusting contractual terms to incentivize revenue growth.
+
+db.OrganizeConcert.aggregate([
+    {	$lookup: {
+      	  from: "Concert",
+          localField: "ConcertID",
+          foreignField: "ConcertID",
+          as: "concert"
+      }
+    },
+    {	$unwind: "$concert"},
+    {	$lookup: {
+          from: "Stats",
+          localField: "concert.StatsID",
+          foreignField: "StatsID",
+          as: "stats"
+      }
+    },
+    {	$unwind: "$stats"},
+    {	$group: {
+          _id: "$AgencyID",
+          TotalRevenue: { $sum: "$stats.Revenue" }
+      }
+    },
+    {	$sort: { TotalRevenue: -1 }},
+    {	$limit:3 }
+])
+
+
+
+
+-- NoSQL Query 3
+
+Purpose : The query analyzes actors' average ratings in movies, aiding in assessing their performance and popularity. Insights guide casting decisions, marketing efforts, and strategic planning in the film industry. By understanding audience preferences and competitive dynamics, businesses optimize resources and tailor content for success.
+
+db.Act.aggregate([
+  { $lookup: {
+      from: "Movie",
+      localField: "MovieID",
+      foreignField: "MovieID",
+      as: "movie"
+    }
+  },
+  { $unwind: "$movie" },
+  { $group: {
+      _id: "$ArtistID",
+      avgRating: { $avg: "$movie.Rating" }
+    }
+  },
+  { $sort: { avgRating: -1 } },
+  { $limit: 10 }
+])
+
+
+
+
+-- NoSQL Query 4
+
+Purpose : The query provides insights into the financial performance of the movie industry during the COVID-19 pandemic. By examining movies' net profits, stakeholders can assess the industry's resilience, identify successful releases, and inform strategic decision-making for future projects and investments.
+
+db.Movie.aggregate([
+  {
+    $lookup: {
+      from: "Stats",
+      localField: "StatID",
+      foreignField: "StatsID",
+      as: "stats"
+    }
+  },
+  {
+    $match: {
+      Year: { $gte: 2021, $lte: 2022 }
+    }
+  },
+  { $unwind: "$stats" },
+  {
+    $project: {
+      Title: 1,
+      NetProfit: "$stats.NetProfit"
+    }
+  }
+])
